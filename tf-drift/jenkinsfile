@@ -1,0 +1,40 @@
+pipeline {
+    agent any
+    environment {
+        GIT_CREDENTIALS_ID = 'your-git-credentials-id'
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                git credentialsId: "${GIT_CREDENTIALS_ID}", url: 'https://github.com/cheiben/drift_detection.git'
+            }
+        }
+        stage('Terraform Init') {
+            steps {
+                sh 'terraform init'
+            }
+        }
+        stage('Terraform Plan') {
+            steps {
+                script {
+                    def result = sh(script: 'python3 drift_detection.py', returnStatus: true)
+                    if (result != 0) {
+                        currentBuild.result = 'FAILURE'
+                    }
+                }
+            }
+        }
+    }
+    post {
+        failure {
+            emailext body: '${BUILD_LOG, maxLines=1000}',
+                     subject: 'ALERT: Terraform Drift Detected',
+                     to: 'chei610@icloud.com'
+        }
+        success {
+            emailext body: 'No drift detected',
+                     subject: 'Terraform Drift Detection Result',
+                     to: 'chei610@icloud.com'
+        }
+    }
+}

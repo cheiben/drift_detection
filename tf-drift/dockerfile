@@ -1,0 +1,35 @@
+ARG ALPINE_VERSION=3.18
+
+# WARNING: this tag is used for both python:alpine and alpine:
+# if updating verify with the links below that the tag exists on both
+# https://hub.docker.com/_/python/tags?page=1&name=alpine
+# https://hub.docker.com/_/alpine/tags
+FROM python:3.11.4-alpine${ALPINE_VERSION} AS builder
+
+# TODO: AWS CLI V2 will likely be built for alpine eventually
+# When that happens this Dockerfile should download that instead of building source
+
+# https://raw.githubusercontent.com/aws/aws-cli/v2/CHANGELOG.rst
+ARG AWS_VERSION=2.13.1
+RUN apk add --no-cache git unzip groff build-base libffi-dev cmake
+RUN git clone --single-branch --depth 1 -b ${AWS_VERSION} https://github.com/aws/aws-cli.git
+WORKDIR /aws-cli
+RUN ./configure --with-install-type=portable-exe --with-download-deps
+RUN make
+RUN make install
+
+FROM alpine:${ALPINE_VERSION}
+COPY --from=builder /usr/local/lib/aws-cli/ /opt/aws-cli/
+RUN ln -s /opt/aws-cli/aws /usr/bin/aws
+
+# https://releases.hashicorp.com/terraform
+ARG TF_VERSION=1.5.4
+ADD https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip tf.zip
+RUN unzip tf.zip && rm tf.zip
+RUN mv terraform /usr/bin/terraform
+
+RUN apk --no-cache --update add jq git nano bash curl bind-tools openssh-client
+
+ENV AWS_DEFAULT_REGION=us-east-1
+
+ENTRYPOINT ["tail", "-f", "/dev/null"]
