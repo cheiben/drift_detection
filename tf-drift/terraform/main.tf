@@ -7,6 +7,3 @@ resource "aws_s3_bucket" "example" {
   acl    = "private"
 
 }
-
-
-##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
