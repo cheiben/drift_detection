@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        GIT_CREDENTIALS_ID = '2352cb57-d765-4842-adaa-6971bcc157a8'
+        GIT_CREDENTIALS_ID = 'xxxxxxxxx'
     }
     stages {
         stage('Checkout') {
